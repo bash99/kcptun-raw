@@ -520,21 +520,27 @@ void init_kcp_mode(int argc, char* argv[]) {
   kcpconfig.interval = 10;
   kcpconfig.resend = 2;
   kcpconfig.nc = 1;
+  kcpconfig.wndsize = KCP_MAX_WND_SIZE;
 
   for(int i=0; i<argc; i++) {
+    if ((!strcmp(argv[i], "--wnd")) && i != argc -1) {
+      char* arg = argv[i + 1];
+      kcpconfig.wndsize = atoi(arg);
+    }
+
     if ((!strcmp(argv[i], "--mode")) && i != argc -1) {
       char* arg = argv[i + 1];
 
       if (!strcmp(arg, "normal")) {
-        LOG("normal mode enabled.");
+        LOG("normal mode enabled. best use with bbr enabled");
         kcpconfig.nodelay = 0;
-        kcpconfig.interval = 30;
-        kcpconfig.resend = 2;
+        kcpconfig.interval = 100;
+        kcpconfig.resend = 0;
         kcpconfig.nc = 1;
       } else if (!strcmp(arg, "fast")) {
-        LOG("fast mode enabled.");
-        kcpconfig.nodelay = 0;
-        kcpconfig.interval = 20;
+        LOG("fast mode enabled. use window_size(--wnd) to config best bandwidth");
+        kcpconfig.nodelay = 1;
+        kcpconfig.interval = 100;
         kcpconfig.resend = 2;
         kcpconfig.nc = 1;
       } else if (!strcmp(arg, "fast2")) {
@@ -608,7 +614,7 @@ void init_kcp() {
   kcp = ikcp_create(0, NULL);
   kcp->output = packet_output;
   ikcp_setmtu(kcp, KCP_MTU);
-  ikcp_wndsize(kcp, KCP_MAX_WND_SIZE, KCP_MAX_WND_SIZE);
+  ikcp_wndsize(kcp, kcpconfig.wndsize, kcpconfig.wndsize);
   ikcp_nodelay(kcp, kcpconfig.nodelay, kcpconfig.interval, kcpconfig.resend, kcpconfig.nc);
 }
 
